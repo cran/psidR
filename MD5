@@ -1,0 +1,13 @@
+67b9e8b991489e77649579422a2a86fe *DESCRIPTION
+7d5448d3a1b4bdee56610853002491b0 *NAMESPACE
+7b13bc06e7099b236d4b2c6be1862225 *R/build.panel.r
+0cc08bfd75d9e211793cf599f889bb38 *R/makeids.r
+216227a0750ebd496808c20ab0fbf795 *R/psidR-package.r
+dce36ce4e929c19e721fafc90f598a00 *examples/example-calls.r
+0d020284d22110c19781c82d2ae586f2 *license.txt
+c3f4e3bdb842f9a7f0249afc3e90867f *man/build.panel.Rd
+f2239f5f767f93eac31b99b378dc7b34 *man/get.psid.Rd
+9875888d5f3c8b8bb91d6da10f8fa4b2 *man/make.char.Rd
+e89ffb6edb2043a281aa8a81e915dab3 *man/makeids.Rd
+db2c123ddfb80ffb723a4876c00da76f *man/psidR.Rd
+8dfe22151961f81720259262ad3823c9 *psidR.Rproj
