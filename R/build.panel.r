@@ -2,21 +2,19 @@
 
 #' build.panel: Build PSID panel data set
 #' 
-#' @description Builds a panel data set in wide format with id variables \code{personID} and \code{period} from individual PSID family files.
+#' @description Builds a panel data set in wide format with id variables \code{pid} (unique person identifier) and \code{year} from individual PSID family files.
 #' @details 
-#' takes desired variables from family files for specified years in folder \code{datadir} and merges using the id information in \code{IND2011ER.xyz}, which must be in the same directory. Note that only one IND file may be present in the directory (each PSID shipping comes with a new IND file).
-#' There is an option to directly download the data from the PSID server to folder \code{datadir} or \code{tmpdir}.
-#' The user can change subsetting criteria as well as sample designs. 
+#' takes desired variables from family files for specified years in folder \code{datadir} and merges using the id information in \code{IND2011ER.xyz}, which must be in the same directory. Note that only one IND file may be present in the directory (each PSID shipping comes with a new IND file). The raw data can be supplied in stata .dta format or it can be directly downloaded from the PSID server to folders \code{datadir} or \code{tmpdir}. Notice that currently only stata format <= 12 is supported (so do \code{saveold} in stata). The user can change subsetting criteria as well as sample designs. 
 #' Merge: the variables \code{interview number} in each family file map to 
 #' the \code{interview number} variable of a given year in the individual file. Run \code{example(build.panel)} for a demonstration.
 #' Accepted input data are stata format .dta, .csv files or R data formats .rda and RData. Similar in usage to stata module \code{psiduse}.
-#' @param datadir either \code{NULL}, in which case saves to tmpdir or path to directory containing family files ("FAMyyyy.xyz") and individual file ("IND2009ER.xyz") in admissible formats .xyz. Admissible are .dta, .csv, .RData, .rda. Please follow naming convention.
-#' @param fam.vars data.frame of variable to retrieve from family files. see example for required format.
+#' @param datadir either \code{NULL}, in which case saves to tmpdir or path to directory containing family files ("FAMyyyy.xyz") and individual file ("IND2009ER.xyz") in admissible formats .xyz. Admissible are .dta, .csv, .RData, .rda. Please follow naming convention. Only .dta version <= 12 supported.
+#' @param fam.vars data.frame of variable to retrieve from family files. Can contain see example for required format.
 #' @param ind.vars data.frame of variables to get from individual file. In almost all cases this will be the type of survey weights you want to use. don't include id variables ER30001 and ER30002.
 #' @param SAScii logical TRUE if you want to directly download data into Rda format (no dependency on STATA/SAS/SPSS). may take a long time.
-#' @param heads.only logical TRUE if user wants household heads only. if FALSE, data contains a row with value of "relation to head" variable.
-#' @param core logical TRUE if user wants core sample only. if FALSE, data will oversample poverty sample.
-#' @param design either character "balanced" or "all" or integer. "Balanced" means only individuals who appear in each wave are considered. "All" means all are taken. An integer value stands for minimum consecutive years of participation, i.e. design=3 means present in at least 3 consecutive waves.
+#' @param heads.only logical TRUE if user wants current household heads only. 
+#' @param sample string indicating which sample to select: "SRC" (survey research center), "SEO" (survey for economic opportunity), "immigrant" (immigrant sample), "latino" (Latino family sample). Defaults to NULL, so no subsetting takes place.
+#' @param design either character \emph{balanced} or \emph{all} or integer. \emph{balanced} means only individuals who appear in each wave are considered. \emph{All} means all are taken. An integer value stands for minimum consecutive years of participation, i.e. design=3 means present in at least 3 consecutive waves.
 #' @param verbose logical TRUE if you want verbose output.
 #' @import SAScii RCurl data.table
 #' @return
@@ -27,12 +25,16 @@
 #' \dontrun{
 #' # specify variables from family files you want
 #' 
-#' myvars <- data.frame(year=c(2001,2003),
+#' the family files dataframe can contain NAs.
+#' E.g. if there are years where a variable is missing
+#' and you want to fix that later on somehow.
+#' famvars <- data.frame(year=c(2001,2003),
 #'                      house.value=c("ER17044","ER21043"),
 #'                      total.income=c("ER20456","ER24099"),
-#'                      education=c("ER20457","ER24148"))
+#'                      education=c("ER20457",NA))
 #'                      
 #' # specify variables from individual index file       
+#' # these cannot contain NAs at the moment.
 #'                
 #' indvars = data.frame(year=c(2001,2003),
 #'                      longitud.wgt=c("ER33637","ER33740"))
@@ -43,21 +45,27 @@
 #' 
 #' # default
 #' d <- build.panel(datadir=mydir,
-#'                 fam.vars=myvars,
+#'                 fam.vars=famvars,
 #'                 ind.vars=indvars)
 #'                 
 #' # also non-heads               
 #' d <- build.panel(datadir=mydir,
-#'                 fam.vars=myvars,
+#'                 fam.vars=famvars,
 #'                 ind.vars=indvars,
 #'                 heads.only=FALSE)
 #'                 
 #' # non-balanced panel design               
 #' d <- build.panel(datadir=mydir,
-#'                 fam.vars=myvars,
+#'                 fam.vars=famvars,
 #'                 ind.vars=indvars,
 #'                 heads.only=FALSE,
 #'                 design=2) # keep if stay 2+ periods
+#' 
+#' # subset the sample to "latino" only              
+#' d <- build.panel(datadir=mydir,
+#'                 fam.vars=famvars,
+#'                 ind.vars=indvars,
+#'                 sample="latino")
 #' } 
 #' 
 #' # ######################################
@@ -66,102 +74,55 @@
 #' # ######################################
 #' 
 #' ## make reproducible family data sets for 2 years
-#' ## variables are: family income (Money) and age 
+#' ## variables are: family income (Money) and age
 #' 
-#' # suppose there are N individuals in year 1 and year 2. 
-#' # zero attrition. 
+#' ## Data acquisition step: you download data or
+#' ## run build.panel with sascii=TRUE
 #' 
-#' N <- 10
-#' 
-#' fam <- data.frame(int85 = 1:N,int86=sample(1:N),
-#'                  Money85=rlnorm(n=N,10,1),
-#'                  age85=sample(20:80,size=N,replace=TRUE))
-#' fam$Money86 <- fam$Money85+rnorm(N,500,30)
-#' fam$age86 <- fam$age85+1
-#' fam
-#' 
-#' # separate into data.frames.
-#' # you would download files like those two:
-#' fam1985 <- subset(fam,select = c(int85,Money85,age85))
-#' fam1986 <- subset(fam,select = c(int86,Money86,age86))
-#' 
-#' # assign correct PSID varname of "family interview 1985"
-#' names(fam1985)[1] <- "V11102"	
-#' names(fam1986)[1] <- "V12502"
-#' 
-#' 
-#' # construct an Individual index file: that would be IND2009ER
-#' # needs to have a unique person number (ER30001) 
-#' # and an indicator for whether from core etc, 
-#' # as well as the interview number for each year
-#' # 
-#' # for sake of illustration, suppose the PSID has a total
-#' # of 2N people (i.e. N are neither in year1 nor year2, 
-#' # but in some other years)
-#' IND2009ER <- data.frame(ER30001=sample((2*N):(4*N),size=2*N),
-#'                         ER30002=sample(1:(2*N),size=2*N))
-#' 
-#' # if a person is observed, they have an interview number 
-#' # in both years. if not observed, it's zero. 
-#' # randomly allocate persons to ER30001.
-#' tmp <- rbind(fam[,1:2],data.frame(int85=rep(0,N),int86=rep(0,N)))
-#' 
-#' IND2009ER <- cbind(IND2009ER,tmp[sample(1:(2*N)),])
-#' names(IND2009ER)[3:4] <- c("ER30463","ER30498")
-#' 
-#' # also need relationship to head in each year in the index
-#' # 50% prob of being head in year1
-#' IND2009ER$ER30465 <- sample(c(10,20),prob=c(0.5,0.5),
-#'                             size=2*N,replace=TRUE)	
-#' IND2009ER$ER30500 <- sample(c(10,20),prob=c(0.9,0.1),
-#'                            size=2*N,replace=TRUE)
-#' # and a survey weight
-#' IND2009ER$ER30497 <- runif(20)
-#' IND2009ER$ER30534 <- runif(20)
-#' IND2009ER
-#' 
-#' # setup the ind.vars data.frame
-#' indvars <- data.frame(year=c(1985,1986),ind.weight=c("ER30497","ER30534"))
+#' # testPSID creates artifical PSID data
+#' td <- testPSID(N=12,N.attr=0)
+#' fam1985 <- copy(td$famvars1985)
+#' fam1986 <- copy(td$famvars1986)
+#' IND2009ER <- copy(td$IND2009ER)
 #' 
 #' # create a temporary datadir
 #' my.dir <- tempdir()
-#' # save those in the datadir
+#' #save those in the datadir
 #' # notice different R formats admissible
 #' save(fam1985,file=paste0(my.dir,"/FAM1985ER.rda"))
-#' save(fam1986,file=paste0(my.dir,"/FAM1986ER.RData"))	
+#' save(fam1986,file=paste0(my.dir,"/FAM1986ER.RData"))
 #' save(IND2009ER,file=paste0(my.dir,"/IND2009ER.RData"))
 #' 
-#' # now famvars
+#' ## end Data acquisition step.
+#' 
+#' # now define which famvars
 #' famvars <- data.frame(year=c(1985,1986),
 #'                       money=c("Money85","Money86"),
 #'                       age=c("age85","age86"))
 #' 
+#' # create ind.vars
+#' indvars <- data.frame(year=c(1985,1986),ind.weight=c("ER30497","ER30534"))
+#' 
 #' # call the builder
-#' # need to set core==FALSE because person numbering indicates
-#' # that all ids<2931 are not core. 
-#' # set heads to FALSE to have a clear count. 
 #' # data will contain column "relation.head" holding the relationship code.
 #' 
 #' d <- build.panel(datadir=my.dir,fam.vars=famvars,
-#'                  ind.vars=indvars,core=FALSE,
-#'                  heads=FALSE,verbose=TRUE)	
-#'
-#' # notice: all 2*N individuals are present
-#' print(d$data[order(pid)],nrow=Inf)	# check the age column
+#'                  ind.vars=indvars,
+#'                  heads.only=FALSE,verbose=TRUE)	
 #' 
 #' # see what happens if we drop non-heads
 #' # only the ones who are heads in BOTH years 
 #' # are present (since design='balanced' by default)
 #' d <- build.panel(datadir=my.dir,fam.vars=famvars,
-#'                  ind.vars=indvars,core=FALSE,
-#'                  heads=TRUE,verbose=FALSE)	
+#'                  ind.vars=indvars,
+#'                  heads.only=TRUE,verbose=FALSE)	
 #' print(d$data[order(pid)],nrow=Inf)
 #' 
 #' # change sample design to "all": 
 #' # we'll keep individuals if they are head in one year,
 #' # and drop in the other
 #' d <- build.panel(datadir=my.dir,fam.vars=famvars,
-#'                  ind.vars=indvars,core=FALSE,heads=TRUE,
+#'                  ind.vars=indvars,heads.only=TRUE,
 #'                  verbose=FALSE,design="all")	
 #' print(d$data[order(pid)],nrow=Inf)
 #' 
@@ -174,12 +135,12 @@
 #' # #####################################################################
 #' # Please go to https://github.com/floswald/psidR for more example usage
 #' # #####################################################################
-build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.only=TRUE,core=TRUE,design="balanced",verbose=FALSE){
+build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.only=FALSE,sample=NULL,design="balanced",verbose=FALSE){
 	
 
 	# locally bind all variables to be used in a data.table
 
-	interview <- headyes <- .SD <- fam.interview <- ind.interview <- ind.head <- ER30001 <- ind.head.num <- pid <- ID1968 <- pernum <- isna <- present <- always <- enough <- NULL
+	interview <- headyes <- .SD <- fam.interview <- ind.interview <- ind.head <- ER30001 <- ind.head.num <- pid <- ID1968 <- pernum <- isna <- present <- always <- enough <- ind.seq <- NULL
 
 	stopifnot(is.numeric(fam.vars$year))
 	years <- fam.vars$year
@@ -241,50 +202,59 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.o
 	# figure out filestypes in datadir
 	l <- list.files(datadir)
 	if (length(l)==0) stop('there is something wrong with the data directory. please check path')
-	if (tail(strsplit(l[1],"\\.")[[1]],1) == "dta") ftype   <- "stata"
-	if (tail(strsplit(l[1],"\\.")[[1]],1) == "rda") ftype   <- "Rdata"
-	if (tail(strsplit(l[1],"\\.")[[1]],1) == "RData") ftype <- "Rdata"
-	if (tail(strsplit(l[1],"\\.")[[1]],1) == "csv") ftype   <- "csv"
+
+	for (i in 1:length(l)) {
+  		if (tail(strsplit(l[i],"\\.")[[1]],1) == "dta") {ftype   <- "stata"; break}
+  		if (tail(strsplit(l[i],"\\.")[[1]],1) == "rda") {ftype   <- "Rdata"; break}
+  		if (tail(strsplit(l[i],"\\.")[[1]],1) == "RData") {ftype <- "Rdata"; break}
+  		if (tail(strsplit(l[i],"\\.")[[1]],1) == "csv") {ftype   <- "csv"; break}
+	}
+	if (!(exists("ftype"))) stop('no .dta, .rda, .RData or .csv files found in data directory')
 
 	if (verbose) cat('psidR: loading data\n')
 	if (ftype=="stata"){
-		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE))
+		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE,ignore.case=TRUE))
         fam.dat  <- grep(paste(years,collapse="|"),fam.dat,value=TRUE)
-		tmp <- grep("IND",l,value=TRUE)
+		tmp <- grep("IND",l,value=TRUE,ignore.case=TRUE)
 		if (length(tmp)>1) {
 		    warning(cat("Warning: you have more than one IND file in your datadir.\nI take the last one:",tail(tmp,1),"\n"))
 			ind.file <- paste0(datadir,tail(tmp,1))	# needs to be updated with next data delivery.
 		} else {
-			ind.file <- paste0(datadir,grep("IND",l,value=TRUE))	# needs to be updated with next data delivery.
+			ind.file <- paste0(datadir,grep("IND",l,value=TRUE,ignore.case=TRUE))	# needs to be updated with next data delivery.
 		}
+		# TODO
+		# maybe should use 
+		# ind      <- read.dta13(file=ind.file)
+		# if version 13?
 		ind      <- read.dta(file=ind.file)
 		ind.dict <- data.frame(code=names(ind),label=attr(ind,"var.labels"))
 		ind      <- data.table(ind)
 	} else if (ftype=="Rdata") {
 		# data downloaded directly into a dataframe
-		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE))
+		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE,ignore.case=TRUE))
 		fam.dat  <- grep(paste(years,collapse="|"),fam.dat,value=TRUE)
-		tmp <- grep("IND",l,value=TRUE)
+		tmp <- grep("IND",l,value=TRUE,ignore.case=TRUE)
 		if (length(tmp)>1) {
 		    warning(cat("Warning: you have more than one IND file in your datadir.\nI take the last one:",tail(tmp,1),"\n"))
 			ind.file <- paste0(datadir,tail(tmp,1))	# needs to be updated with next data delivery.
 		} else {
-			ind.file <- paste0(datadir,grep("IND",l,value=TRUE))	# needs to be updated with next data delivery.
+			ind.file <- paste0(datadir,grep("IND",l,value=TRUE,ignore.case=TRUE))	# needs to be updated with next data delivery.
 		}
 		tmp.env  <- new.env()
 		load(file=ind.file,envir=tmp.env)
 		ind      <- get(ls(tmp.env),tmp.env)	# assign loaded dataset a new name
+		setnames(ind,names(ind), sapply(names(ind), toupper))	## convert all column names to uppercase
 		ind.dict <- NULL
 		ind      <- data.table(ind)
 	} else if (ftype=="csv") {
-		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE))
+		fam.dat  <- paste0(datadir,grep("FAM",l,value=TRUE,ignore.case=TRUE))
 		fam.dat  <- grep(paste(years,collapse="|"),fam.dat,value=TRUE)
-		tmp <- grep("IND",l,value=TRUE)
+		tmp <- grep("IND",l,value=TRUE,ignore.case=TRUE)
 		if (length(tmp)>1) {
 		    warning(cat("Warning: you have more than one IND file in your datadir.\nI take the last one:",tail(tmp,1),"\n"))
 			ind.file <- paste0(datadir,tail(tmp,1))	# needs to be updated with next data delivery.
 		} else {
-			ind.file <- paste0(datadir,grep("IND",l,value=TRUE))	# needs to be updated with next data delivery.
+			ind.file <- paste0(datadir,grep("IND",l,value=TRUE,ignore.case=TRUE))	# needs to be updated with next data delivery.
 		}
 		ind      <- fread(input=ind.file)
 		ind.dict <- NULL
@@ -318,7 +288,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.o
 	}
 
 
-	# make an index of interview numbers for each year
+	# make an index of interview numbers for each year
 	ids <- makeids()
 	if (verbose){
 		cat('here is the list of hardcoded PSID variables\n')
@@ -339,38 +309,90 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.o
 			cat('=============================================\n')
 			cat('currently working on data for year',years[iy],'\n')
 		}
-
-		# keeping only relevant columns from individual file
-		# subset for core sample and heads only if requested.
+ 
+   		# keeping only relevant columns from individual file
+		# subset only if requested.
 		curr <- ids[list(years[iy])]
-		ind.subsetter <- as.character(curr[,list(ind.interview,ind.head)])	# keep from ind file
+		ind.subsetter <- as.character(curr[,list(ind.interview,ind.seq,ind.head)])	# keep from ind file
 		def.subsetter <- c("ER30001","ER30002")	# must keep those in all years
-		yind <- copy(ind[,c(def.subsetter,unique(c(ind.subsetter,as.character(ind.vars[list(years[iy]),which(names(ind.vars)!="year"),with=FALSE])))),with=FALSE])
 
-		if (core) {
-		   n    <- nrow(yind)
-		   yind <- copy(yind[ER30001>2930])	# individuals 1-2930 are from poor sample
-		   if (verbose){
-			   cat('full',years[iy],'sample has',n,'obs\n')
-			   cat('dropping non-core individuals leaves',nrow(yind),'obs\n')
-		   }
-		   if (nrow(yind)==0) stop('you dropped all observations by selecting core only.\n This means you supplied a family file only from the poor sample. unusual.')
-		}
+		# TODO
+		# how to allow for NA in ind.vars?
+		# def.names <- c(def.subsetter,ind.subsetter)
+		# yind <- copy(ind[,def.names,with=FALSE])	
+		# # are there NA's in the ind.vars?
+		# curvars <- ind.vars[list(years[iy]),which(!(names(ind.vars) %in% c("year",def.names))),with=FALSE]
+		# curnames <- names(curvars)
+		# if (ind.vars[,any(is.na(.SD))]){
+		# 	na      <- curvars[,which(is.na(.SD))]
+		# 	codes   <- as.character(curvars)
+		# 	nanames <- curnames[na]
+		# 	tmp     <- copy(ind[,codes[-na],with=FALSE])
+		# 	tmp[,nanames := NA_real_,with=FALSE]
+		# 	setnames(tmp,c(curnames[-na],nanames))
+		# 	setkey(tmp,interview)
 
+		# }
+
+    	# ie the default column order is: 
+    	# "ER30001","ER30002", "current year interview var", "current year sequence number", "current year head indicator"
+		yind <- copy(ind[,c(def.subsetter,unique(c(ind.subsetter,as.character(ind.vars[list(years[iy]),which(names(ind.vars)!="year"),with=FALSE])))),with=FALSE])	
+    
+    	# sample selection
+    	# ----------------
+
+    	# based on: https://psidonline.isr.umich.edu/Guide/FAQ.aspx?Type=ALL#250
+
+    	if (!is.null(sample)){
+
+    		if (sample == "SRC"){
+			   n    <- nrow(yind)
+			   yind <- copy(yind[ER30001<3000])	# individuals 1-2999 are from SRC sample
+			   if (verbose){
+				   cat('full',years[iy],'sample has',n,'obs\n')
+				   cat(sprintf('you selected %d obs belonging to %s \n',nrow(yind),sample))
+			   }
+    		} else if (sample == "SEO"){
+			   n    <- nrow(yind)
+			   yind <- copy(yind[ER30001<7000 & ER30001>5000])
+			   if (verbose){
+				   cat('full',years[iy],'sample has',n,'obs\n')
+				   cat(sprintf('you selected %d obs belonging to %s \n',nrow(yind),sample))
+			   }
+    		} else if (sample == "immigrant"){
+			   n    <- nrow(yind)
+			   yind <- copy(yind[ER30001<5000 & ER30001>3000])	# individuals 1-2999 are from SRC sample
+			   if (verbose){
+				   cat('full',years[iy],'sample has',n,'obs\n')
+				   cat(sprintf('you selected %d obs belonging to %s \n',nrow(yind),sample))
+			   }
+    		} else if (sample == "latino"){
+			   n    <- nrow(yind)
+			   yind <- copy(yind[ER30001<9309 & ER30001>7000])	# individuals 1-2999 are from SRC sample
+			   if (verbose){
+				   cat('full',years[iy],'sample has',n,'obs\n')
+				   cat(sprintf('you selected %d obs belonging to %s \n',nrow(yind),sample))
+			   }
+    		}
+    	}
+
+    	# heads only selection
+    	# --------------------
+
+		# issue number 2: for current heads only need to subset "relationship to head" AS WELL AS "sequence number" == 1 
+		# otherwise a head who died between last and this wave is still head, so there would be two heads in that family.
+		# https://psidonline.isr.umich.edu/Guide/FAQ.aspx?Type=ALL#150
 		if (heads.only) {
 		   n    <- nrow(yind)
-		   yind <- yind[,headyes := yind[,curr[,ind.head],with=FALSE]==curr[,ind.head.num]]
+		   yind <- yind[,headyes := (yind[,curr[,ind.head],with=FALSE]==curr[,ind.head.num]) & (yind[,curr[,ind.seq],with=FALSE]== 1)]
 		   yind <- copy(yind[headyes==TRUE])
 		   if (verbose){
-			   cat('dropping non-heads leaves',nrow(yind),'obs\n')
+			   cat('dropping non-current-heads leaves',nrow(yind),'obs\n')
 		   }
-		   yind[,c(curr[,ind.head],"headyes") := NULL]
-			# set names on individual index
-			setnames(yind,c("ID1968","pernum","interview",names(ind.vars)[-1]))
-		} else {
-			# set names on individual index
-			setnames(yind,c("ID1968","pernum","interview","relation.head",names(ind.vars)[-1]))
+		   yind[,headyes := NULL]
 		}
+
+		setnames(yind,c("ID1968","pernum","interview","sequence","relation.head",names(ind.vars)[-1]))
 		yind[,pid := ID1968*1000 + pernum]	# unique person identifier
 		setkey(yind,interview)
 
@@ -397,10 +419,15 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.o
 			vs = ceiling(object.size(tmp))
 			print(vs,units="Mb")
 		}
-	
 
-		# add vars from from file that the user requested.
+		# convert all variable names to lower case in both fam.vars and data file
 		curvars <- fam.vars[list(years[iy]),which(names(fam.vars)!="year"),with=FALSE]
+		tmpnms = tolower(as.character(curvars))
+		for (i in 1:length(tmpnms)){
+			curvars[[i]] <- tmpnms[i]
+		}
+		setnames(tmp,tolower(names(tmp)))
+	
 		curnames <- names(curvars)
 		# current set of variables
 		# caution if there are specified NAs
@@ -470,8 +497,6 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,SAScii=FALSE,heads.o
 
 	return(out)
 }
-
-
 
 
 

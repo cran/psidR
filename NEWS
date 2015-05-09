@@ -1,5 +1,19 @@
 
 *********************
+* News in Version 1.3
+*********************
+
+* added unit tests
+* added travis CI
+* example dataset now created in a function. allows for
+  attrition now.
+* fixed bugs:
+  https://github.com/floswald/psidR/issues/2
+  https://github.com/floswald/psidR/issues/5
+  https://github.com/floswald/psidR/issues/8
+
+
+*********************
 * News in Version 1.2
 *********************
 
