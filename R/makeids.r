@@ -5,7 +5,7 @@
 #' @details this function hardcodes the PSID variable names of "interview number" from both family and individual file for each wave, as well as "sequence number", "relation to head" and numeric value x of that variable such that "relation to head" == x means the individual is the head. Varies over time.
 makeids <- function(){
 
-	id.list <- data.table(year=c(1968:1997,seq(1999,2011,by=2)))
+	id.list <- data.table(year=c(1968:1997,seq(1999,2013,by=2)))
 	id.list$ind.interview <- c("ER30001","ER30020","ER30043","ER30067",
 									"ER30091","ER30117","ER30138","ER30160", 
 									"ER30188","ER30217","ER30246","ER30283",
@@ -14,14 +14,16 @@ makeids <- function(){
 									"ER30570","ER30606","ER30642","ER30689",
 									"ER30733","ER30806","ER33101","ER33201",
 									"ER33301","ER33401","ER33501","ER33601",
-									"ER33701","ER33801","ER33901","ER34001","ER34101")
+									"ER33701","ER33801","ER33901","ER34001",
+									"ER34101","ER34201")
 
 	id.list$ind.seq <- c(NA,"ER30021","ER30044","ER30068","ER30092","ER30118","ER30139",
 						 "ER30161","ER30189","ER30218","ER30247","ER30284","ER30314", 
 						 "ER30344","ER30374","ER30400","ER30430","ER30464","ER30499", 
 						 "ER30536","ER30571","ER30607","ER30643","ER30690","ER30734", 
 						 "ER30807","ER33102","ER33202","ER33302","ER33402","ER33502", 
-						 "ER33602","ER33702","ER33802","ER33902","ER34002","ER34102")
+						 "ER33602","ER33702","ER33802","ER33902","ER34002","ER34102",
+						 "ER34202")
 	
 	# name of variable "relationship to head"
 	id.list$ind.head <- c("ER30003",
@@ -60,10 +62,11 @@ makeids <- function(){
 						  "ER33803",
 						  "ER33903",
 						  "ER34003",
-						  "ER34103")
+						  "ER34103",
+						  "ER34203")
 						  
 	# numeric code for "i am the head"
-	id.list$ind.head.num <- c(rep(1,15),rep(10,22))
+	id.list$ind.head.num <- c(rep(1,15),rep(10,23))
 
 	id.list$fam.interview <- c("V3"      , "V442"    , "V1102"   , "V1802"   , "V2402"    , "V3002" ,
 							   "V3402"   , "V3802"   , "V4302"   , "V5202"   , "V5702"    ,
@@ -71,7 +74,8 @@ makeids <- function(){
 							   "V10002"  , "V11102"  , "V12502"  , "V13702"  , "V14802"   ,
 							   "V16302"  , "V17702"  , "V19002"  , "V20302"  , "V21602"   ,
 							   "ER2002"  , "ER5002"  , "ER7002"  , "ER10002" , "ER13002"  ,
-							   "ER17002" , "ER21002" , "ER25002" , "ER36002" , "ER42002"  , "ER47302")
+							   "ER17002" , "ER21002" , "ER25002" , "ER36002" , "ER42002"  , 
+							   "ER47302" , "ER53002")
 	setkey(id.list,year)
 	return(id.list)
 }
@@ -96,6 +100,7 @@ get.psid <- function( file , name , params , curl ){
 	
 		tf <- tempfile() ; td <- tempdir()
 		
+		cat('downloading file ',name,'\n')
 		file <- getBinaryURL( paste0( "http://simba.isr.umich.edu/Zips/GetFile.aspx?file=" , file ) , curl = curl )
 		writeBin( file , tf )
 		z <- unzip( tf , exdir = td )
@@ -103,6 +108,17 @@ get.psid <- function( file , name , params , curl ){
 		sas_ri <- z[ grepl( '.sas' , z , fixed = TRUE ) ]
 
 		cat('now reading and processing SAS file',name,'into R\n')
+
+		#SAScii version check SAScii_fork
+		if (!exists("SAScii_fork",mode="function")){
+			warning("you may run into trouble now. There was a change of file format on some PSID family files. \n If you get the an error \n toupper(SASinput) \n
+				then you need to re-install the SAScii package from my github fork at \n
+				https://github.com/floswald/SAScii \n
+				an easy way to do this is to use the devtools package. then:
+				install_github('floswald/SAScii')")
+		}
+
+
 		x <- read.SAScii( fn , sas_ri )
 
 		save( x , file = paste0( name , '.rda' ) )
@@ -145,7 +161,7 @@ make.char <- function(x){
 testPSID <-function(N=100,N.attr = 0){
 
 	# need to bind some vars for R CHECK:
-	ER30001 <- ER30002 <-intnum86 <- intnum85 <- Money85 <- Money86 <- age85 <- age86 <- NULL
+	ER30001 <- ER30002 <-intnum86 <- intnum85 <- Money85 <- Money86 <- age85 <- age86 <- smpls <- NULL
 
 	stopifnot(N %% 4 == 0)
 	# for sake of illustration, suppose the PSID has a total
@@ -159,8 +175,8 @@ testPSID <-function(N=100,N.attr = 0){
 	# 3) poor sample: interview number in [5000,7000)
 	# 4) latino sample: interview number in [7000,9308)
 
-	smpls <- ceiling(1:N / (N/4))
-	IND2009ER <- data.table(smpls=c(smpls,smpls))  # get 2*N inds
+	smpl <- ceiling(1:N / (N/4))
+	IND2009ER <- data.table(smpls=c(smpl,smpl))  # get 2*N inds
     IND2009ER[, ER30001 := 0L]
 	IND2009ER[smpls==1, ER30001 := sample(1:2999,size=sum(smpls==1))]
 	IND2009ER[smpls==2, ER30001 := sample(3001:4999,size=sum(smpls==2))]
