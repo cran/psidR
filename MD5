@@ -1,9 +1,8 @@
-568770c7ed82ea5e14b2cb1809a2986d *DESCRIPTION
+1ec2da03b30da0d4d992394990174e01 *DESCRIPTION
 fbf554b2459276a2e89c70b104ff5952 *NAMESPACE
-ea3a274f741329e38c9247a7009b570e *NEWS
-2bbba6929731090eb8e43c9859550434 *R/build.panel.r
-3c231a277782229da41d87ee6754ad00 *R/get.variable.names.r
-57ebcca8f03c2db76f4df3291d78581b *R/makeids.r
+804483578ba3ce02e4688a8b34870a5a *NEWS
+04818f4ab623091e05cf71925489c99f *R/build.panel.r
+75f03da1844acc92e6b9d24a08483f6b *R/makeids.r
 c6ec9623d562770a25f16666ec9632f7 *R/psidR-package.r
 00e7c3e58ea0b192b4a688b011af8497 *inst/examples/build.R
 dce36ce4e929c19e721fafc90f598a00 *inst/examples/example-calls.r
@@ -14,10 +13,9 @@ dce36ce4e929c19e721fafc90f598a00 *inst/examples/example-calls.r
 b00ae3bdeb72ce19a4b8e6ceee7086c0 *inst/psid-lists/psid.xlsx
 2e93f7c731a28d2bf9eaa9f01a8b84a3 *inst/psid-lists/wealthvars-small.txt
 975f9296c3193b26e8d20d32da49b232 *inst/psid-lists/wealthvars.txt
-be616d4bfe0f3cd9b87ae0f07667e1f0 *man/build.panel.Rd
-6327a5ccc269523e0a55d80d1762c91d *man/build.psid.Rd
+7c6b5488292f7414471ea916ce307519 *man/build.panel.Rd
+a65c42ecda5de7cab1adfb79eca5102f *man/build.psid.Rd
 f4c9b4dad51a13d5167bbfce4b4eee9b *man/get.psid.Rd
-f74ac08d7356de29441d23c918a8f987 *man/get.variable.names.Rd
 09de93829255c47c9a608a3dc0f1c099 *man/getNamesPSID.Rd
 ec152861510e628d728090e6dc8a96e9 *man/make.char.Rd
 df7b517278ec05f296c8fb967ba84aca *man/makeids.Rd
