@@ -1,10 +1,10 @@
-19ea691b796e6b9c9bf2c81618d78b88 *DESCRIPTION
+5ec9f50d2091cc191ea6a26d40fee4b2 *DESCRIPTION
 98bc5e49efb3a5b86d36e2ba6304c079 *NAMESPACE
 804483578ba3ce02e4688a8b34870a5a *NEWS
 6782bb20fc81bd3abce1bc42b8c927b8 *R/build.panel.r
 225b56804506e022b426540bb2329213 *R/makeids.r
 3b3ee2b08bf524a8570826b4655565f0 *R/psidR-package.r
-731858841404ef79d9d85d57d27ff266 *inst/CITATION
+a73a2bb3a7b3557e6d96544e1da12c4e *inst/CITATION
 8fb2ee2dd7ad44efae345ab8df712a1c *inst/examples/build.R
 66d6c03eeb5ddf89820c5d573bbf7d69 *inst/examples/example-calls.r
 35de7014f86c1b910f6f1a7e0ce73107 *inst/psid-lists/famvars-small.txt
@@ -14,6 +14,9 @@
 b00ae3bdeb72ce19a4b8e6ceee7086c0 *inst/psid-lists/psid.xlsx
 2e93f7c731a28d2bf9eaa9f01a8b84a3 *inst/psid-lists/wealthvars-small.txt
 975f9296c3193b26e8d20d32da49b232 *inst/psid-lists/wealthvars.txt
+c3d268a9696b23b21522f87f814d59dd *inst/testdata/FAM1985ER.rda
+09d3ad7d89f7b8a7688e4d9eb479a5a3 *inst/testdata/FAM1986ER.RData
+ed789288125ebdc212911600466d01c6 *inst/testdata/IND2015ER.RData
 70ace1fdf6c75c5f4e5db1ff400d81ed *man/build.panel.Rd
 a65c42ecda5de7cab1adfb79eca5102f *man/build.psid.Rd
 f4c9b4dad51a13d5167bbfce4b4eee9b *man/get.psid.Rd
@@ -29,5 +32,5 @@ e7d07ae2534e65feb83bcdcd9923399a *man/medium.test.ind.Rd
 74a6af68b5ffbcd2fb3747bb88f09436 *man/small.test.noind.Rd
 e1b661f49e8a32b31d463ff0d7fccff6 *man/testPSID.Rd
 f027ff71f91bd9f6f867e6a3b24ca43e *tests/testthat.R
-ba1451601effdd91c6f033c4f49058a6 *tests/testthat/test_buildpanel.R
+23619fc8d844fc25cd02f967c4948b61 *tests/testthat/test_buildpanel.R
 595a3cc9ba9d40773a826edc92e6ee16 *tests/testthat/test_testPSID.R
