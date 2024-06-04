@@ -1,10 +1,10 @@
-e28fbbded7e2fd5296ab085c22a0d3ee *DESCRIPTION
+c9e3bc8d68fffc15e6c54064fffbd6f0 *DESCRIPTION
 db4340cb99d15c39c617b6722bde1fb6 *NAMESPACE
 0da2a32778663b77e5cb47de1441241d *NEWS
-a3315a6ea59062b34052564e21a7fee3 *R/build.panel.r
-1c9ede46fe0df09f693545d38d2e806e *R/makeids.r
+6453272cf084481cea23121629cabe94 *R/build.panel.r
+2f210899eecbcc3b98515b7fabe4212a *R/makeids.r
 24336ce1c82c38a8be52770e2d85b0e6 *R/psidR-package.r
-a73a2bb3a7b3557e6d96544e1da12c4e *inst/CITATION
+808b4f985742fe6c1bdc1f54eb305028 *inst/CITATION
 8fb2ee2dd7ad44efae345ab8df712a1c *inst/examples/build.R
 66d6c03eeb5ddf89820c5d573bbf7d69 *inst/examples/example-calls.r
 09519b40f501421705099faa04ec48e8 *inst/psid-lists/famvars-bk.txt
@@ -20,7 +20,7 @@ c02b8907466b945716291ce05e19e3ac *inst/testdata/FAM1986ER.RData
 9ba0a4c1132805d4d55505f3b249393f *inst/testdata/IND2017ER.RData
 9e9aabeeb314070c242a8da727ba315b *man/build.panel.Rd
 4e24810595f40104630ec0486a7e89a0 *man/build.psid.Rd
-aa3f7e726a54e35e4e68c3035fafe5db *man/get.psid.Rd
+4d534a162fa8601aa4c72f05ed62eddf *man/get.psid.Rd
 99e9234ed5b8baf0c95c5fdac0f51957 *man/getNamesPSID.Rd
 ec152861510e628d728090e6dc8a96e9 *man/make.char.Rd
 df7b517278ec05f296c8fb967ba84aca *man/makeids.Rd
@@ -33,5 +33,5 @@ e7d07ae2534e65feb83bcdcd9923399a *man/medium.test.ind.Rd
 74a6af68b5ffbcd2fb3747bb88f09436 *man/small.test.noind.Rd
 e1b661f49e8a32b31d463ff0d7fccff6 *man/testPSID.Rd
 f027ff71f91bd9f6f867e6a3b24ca43e *tests/testthat.R
-c83678c4b9559e50a1697fef174254ea *tests/testthat/test_buildpanel.R
+4d53b855e8c79775af3e6656b64f8288 *tests/testthat/test_buildpanel.R
 5637cb04ef3450948c6f24efe6df908b *tests/testthat/test_testPSID.R
