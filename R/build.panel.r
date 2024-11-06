@@ -25,36 +25,7 @@
 #' resulting \code{data.table}. the variable \code{pid} is the unique person identifier, constructed from ID1968 and pernum
 #' @export
 #' @examples 
-#' \dontrun{
-#' # ################################################
-#' # Real-world example: not run because takes long.
-#' # Build panel with income, wage, age and education
-#' # optionally: add wealth supplements!
-#' # ################################################
 #' 
-#' # The package is installed with a list of variables
-#' # Alternatively, search for names with \code{\link{getNamesPSID}}
-#' # This is the body of function build.psid()
-#' # (so why not call build.psid() and see what happens!)
-#' r = system.file(package="psidR")
-#' if (small){
-#'   f = fread(file.path(r,"psid-lists","famvars-small.txt"))
-#'   i = fread(file.path(r,"psid-lists","indvars-small.txt"))
-#' } else {
-#'   f = fread(file.path(r,"psid-lists","famvars.txt"))
-#'   i = fread(file.path(r,"psid-lists","indvars.txt"))
-#' }
-#' setkey(i,"name")
-#' setkey(f,"name")
-#' i = dcast(i[,list(year,name,variable)],year~name)
-#' f = dcast(f[,list(year,name,variable)],year~name)
-#'   d = build.panel(datadir="~/datasets/psid/",fam.vars=f,
-#'                  ind.vars=i, 
-#'                  heads.only =TRUE,sample="SRC",
-#'                  design="all")
-#'   save(d,file="~/psid.RData")
-#' }
-#'
 #' # ######################################
 #' # reproducible example on artifical data. 
 #' # run this with example(build.panel).
@@ -130,6 +101,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,heads.only=FALSE,cur
 	# or R CMD CHECK complains.
 
 	interview <- headyes <- .SD <- fam.interview <- ind.interview <- ind.head <- ER30001 <- ind.head.num <- pid <- ID1968 <- pernum <- isna <- present <- always <- enough <- ind.seq <- name <- variable <- NULL
+	oldopts <- NULL
 
 	stopifnot(is.numeric(fam.vars$year))
 	years <- fam.vars$year
@@ -139,6 +111,8 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,heads.only=FALSE,cur
 	s <- .Platform$file.sep
 	if ( .Platform$OS.type != 'windows' ) {
 		# warning("I'm setting your encoding to windows now")
+	    oldopts <- options() # code line i
+	    on.exit(options(oldopts)) # code line i + 1
 		options( encoding = "windows-1252" )		# # only macintosh and *nix users need this line
 	}
 	
@@ -656,6 +630,7 @@ build.panel <- function(datadir=NULL,fam.vars,ind.vars=NULL,heads.only=FALSE,cur
 #' @param dd Data Dictionary location. If NULL, 
 #' use temp dir and force download
 #' @export
+#' @returns No return value, called for side effects
 small.test.noind <- function(dd=NULL){
  	cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
  	head_age_var_name <- getNamesPSID("ER17013", cwf, years=c(2003))
@@ -668,6 +643,7 @@ small.test.noind <- function(dd=NULL){
 #' @param dd Data Dictionary location. If NULL, 
 #' use temp dir and force download
 #' @export
+#' @returns No return value, called for side effects
 small.test.ind <- function(dd=NULL){
  	cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
  	head_age_var_name <- getNamesPSID("ER17013", cwf, years=c(2003))
@@ -682,6 +658,7 @@ small.test.ind <- function(dd=NULL){
 #' @param dd Data Dictionary location. If NULL, 
 #' use temp dir and force download
 #' @export
+#' @returns No return value, called for side effects
 medium.test.ind <- function(dd=NULL){
 	cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
 	head_age_var_name <- getNamesPSID("ER17013", cwf, years=c(2003,2005,2007))
@@ -695,6 +672,7 @@ medium.test.ind <- function(dd=NULL){
 #' 
 #' @param dd Data Dictionary location
 #' @export
+#' @returns No return value, called for side effects
 medium.test.noind <- function(dd=NULL){
   cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
   head_age_var_name <- getNamesPSID("ER17013", cwf, years=c(2003,2005,2007))
@@ -707,6 +685,7 @@ medium.test.noind <- function(dd=NULL){
 #' @param dd Data Dictionary location. If NULL, 
 #' use temp dir and force download
 #' @export
+#' @returns No return value, called for side effects
 medium.test.ind.NA <- function(dd=NULL){
 	cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
 	head_age_var_name <- getNamesPSID("ER17013", cwf, years=c(2003,2005,2007))
@@ -722,6 +701,7 @@ medium.test.ind.NA <- function(dd=NULL){
 #' @param dd Data Dictionary location. If NULL, 
 #' use temp dir and force download
 #' @export
+#' @returns description No return value, called for side effects
 medium.test.ind.NA.wealth <- function(dd=NULL){
     flog.warn("this functionality is not implemented any more.")
 # 	cwf = openxlsx::read.xlsx(system.file(package="psidR","psid-lists","psid.xlsx"))
@@ -743,7 +723,7 @@ medium.test.ind.NA.wealth <- function(dd=NULL){
 #' @export
 #' @param datadr string of the data directory
 #' @param small logical TRUE if only use years 2013 and 2015.
-#' @return a data.table with panel data
+#' @returns a data.table with panel data
 build.psid <- function(datadr="~/datasets/psid/",small=TRUE){
   variable <- name <- NULL
   r = system.file(package="psidR")
@@ -760,8 +740,7 @@ build.psid <- function(datadr="~/datasets/psid/",small=TRUE){
   i = dcast(i[,list(year,name,variable)],year~name, value.var = "variable")
   f = dcast(f[,list(year,name,variable)],year~name, value.var = "variable")
   d = build.panel(datadir=datadr,fam.vars=f,ind.vars=i, heads.only = TRUE,sample="SRC",design="all")
-  save(d,file="~/psid_no_wealth.RData")
- 
+  
   return(d)
 }
 
